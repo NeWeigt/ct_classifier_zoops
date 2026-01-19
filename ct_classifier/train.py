@@ -15,11 +15,13 @@ import torch # this imports pytorch
 import torch.nn as nn # this contains our loss function 
 from torch.utils.data import DataLoader # the pytorch dataloader class will take care of all kind of parallelization during training
 from torch.optim import SGD # this imports the optimizer
+import torchvision # this contains some helper functions for vision-related tasks
 
 # let's import our own classes and functions!
 from util import init_seed
 from dataset import CTDataset
 from model import CustomResNet18
+from torch.utils.tensorboard import SummaryWriter
 
 
 
@@ -96,7 +98,7 @@ def setup_optimizer(cfg, model):
 
 
 
-def train(cfg, dataLoader, model, optimizer):
+def train(cfg, dataLoader, model, optimizer, writer, epoch=0):
     '''
         Our actual training function.
     '''
@@ -147,6 +149,20 @@ def train(cfg, dataLoader, model, optimizer):
         oa = torch.mean((pred_label == labels).float()) # OA: number of correct predictions divided by batch size (i.e., average/mean)
         oa_total += oa.item()
 
+        if idx == 0:
+            print('logging info and images to tensorboard')
+            batch_size = data.size(0)
+            num_to_sample = min(32, batch_size)  # make sure we don't exceed batch size
+            # randomly choose indices
+            # indices = torch.randperm(batch_size)[:num_to_sample]
+            # select random images
+            imgs = data[:num_to_sample]
+            # make grid
+            img_grid = torchvision.utils.make_grid(imgs)
+            # show images
+            # matplotlib_imshow(img_grid, one_channel=True)
+            writer.add_image('train_images', img_grid, epoch)
+
         progressBar.set_description(
             '[Train] Loss: {:.2f}; OA: {:.2f}%'.format(
                 loss_total/(idx+1),
@@ -160,11 +176,14 @@ def train(cfg, dataLoader, model, optimizer):
     loss_total /= len(dataLoader)           # shorthand notation for: loss_total = loss_total / len(dataLoader)
     oa_total /= len(dataLoader)
 
+    writer.add_scalar('train/loss', loss_total, epoch)
+    writer.add_scalar('train/oa', oa_total, epoch)
+
     return loss_total, oa_total
 
 
 
-def validate(cfg, dataLoader, model):
+def validate(cfg, dataLoader, model, writer, epoch=0):
     '''
         Validation function. Note that this looks almost the same as the training
         function, except that we don't use any optimizer or gradient steps.
@@ -204,6 +223,20 @@ def validate(cfg, dataLoader, model):
             oa = torch.mean((pred_label == labels).float())
             oa_total += oa.item()
 
+            if idx == 0:
+                print('logging info and images to tensorboard')
+                batch_size = data.size(0)
+                num_to_sample = min(32, batch_size)  # make sure we don't exceed batch size
+                # randomly choose indices
+                # indices = torch.randperm(batch_size)[:num_to_sample]
+                # select random images
+                imgs = data[:num_to_sample]
+                # make grid
+                img_grid = torchvision.utils.make_grid(imgs)
+                # show images
+                # matplotlib_imshow(img_grid, one_channel=True)
+                writer.add_image('val_images', img_grid, epoch)
+
             progressBar.set_description(
                 '[Val ] Loss: {:.2f}; OA: {:.2f}%'.format(
                     loss_total/(idx+1),
@@ -216,6 +249,9 @@ def validate(cfg, dataLoader, model):
     progressBar.close()
     loss_total /= len(dataLoader)
     oa_total /= len(dataLoader)
+
+    writer.add_scalar('val/loss', loss_total, epoch)
+    writer.add_scalar('val/oa', oa_total, epoch)
 
     return loss_total, oa_total
 
@@ -252,14 +288,16 @@ def main():
     # set up model optimizer
     optim = setup_optimizer(cfg, model)
 
+    writer = SummaryWriter()
+
     # we have everything now: data loaders, model, optimizer; let's do the epochs!
     numEpochs = cfg['num_epochs']
     while current_epoch < numEpochs:
         current_epoch += 1
         print(f'Epoch {current_epoch}/{numEpochs}')
 
-        loss_train, oa_train = train(cfg, dl_train, model, optim)
-        loss_val, oa_val = validate(cfg, dl_val, model)
+        loss_train, oa_train = train(cfg, dl_train, model, optim, writer, current_epoch)
+        loss_val, oa_val = validate(cfg, dl_val, model, writer, current_epoch)
 
         # combine stats and save
         stats = {
