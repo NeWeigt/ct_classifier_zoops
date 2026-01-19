@@ -22,6 +22,7 @@ from util import init_seed
 from dataset import CTDataset
 from model import CustomResNet18
 from torch.utils.tensorboard import SummaryWriter
+import json
 
 
 
@@ -203,6 +204,9 @@ def validate(cfg, dataLoader, model, writer, epoch=0):
 
     # iterate over dataLoader
     progressBar = trange(len(dataLoader))
+
+    all_predictions = []
+    all_labels = []
     
     with torch.no_grad():               # don't calculate intermediate gradient steps: we don't need them, so this saves memory and is faster
         for idx, (data, labels) in enumerate(dataLoader):
@@ -220,6 +224,10 @@ def validate(cfg, dataLoader, model, writer, epoch=0):
             loss_total += loss.item()
 
             pred_label = torch.argmax(prediction, dim=1)
+
+            all_predictions.extend(pred_label.cpu().tolist())
+            all_labels.extend(labels.cpu().tolist())
+
             oa = torch.mean((pred_label == labels).float())
             oa_total += oa.item()
 
@@ -252,6 +260,20 @@ def validate(cfg, dataLoader, model, writer, epoch=0):
 
     writer.add_scalar('val/loss', loss_total, epoch)
     writer.add_scalar('val/oa', oa_total, epoch)
+
+    # save all predictions and labels to a json file for further analysis
+    results = {
+        'predictions': all_predictions,
+        'labels': all_labels
+    }
+
+    # get the writers log directory
+    log_dir = writer.log_dir
+    val_dir = os.path.join(log_dir, 'val_predictions')
+    os.makedirs(val_dir, exist_ok=True)
+    with open(f'{val_dir}/val_predictions_epoch_{epoch}.json', 'w') as f:
+        json.dump(results, f)
+
 
     return loss_total, oa_total
 
