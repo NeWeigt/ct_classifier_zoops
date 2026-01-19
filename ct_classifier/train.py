@@ -123,7 +123,7 @@ def train(cfg, dataLoader, model, optimizer, writer, epoch=0):
 
     # iterate over dataLoader
     progressBar = trange(len(dataLoader))
-    for idx, (data, labels) in enumerate(dataLoader):       # see the last line of file "dataset.py" where we return the image tensor (data) and label
+    for idx, (data, labels, image_names) in enumerate(dataLoader):       # see the last line of file "dataset.py" where we return the image tensor (data) and label
 
         # put data and labels on device
         data, labels = data.to(device), labels.to(device)
@@ -207,9 +207,11 @@ def validate(cfg, dataLoader, model, writer, epoch=0):
 
     all_predictions = []
     all_labels = []
+    all_image_names = []
+    all_confidences = []
     
     with torch.no_grad():               # don't calculate intermediate gradient steps: we don't need them, so this saves memory and is faster
-        for idx, (data, labels) in enumerate(dataLoader):
+        for idx, (data, labels, image_names) in enumerate(dataLoader):
 
             # put data and labels on device
             data, labels = data.to(device), labels.to(device)
@@ -224,9 +226,12 @@ def validate(cfg, dataLoader, model, writer, epoch=0):
             loss_total += loss.item()
 
             pred_label = torch.argmax(prediction, dim=1)
+            pred_confidence = torch.max(torch.softmax(prediction, dim=1), dim=1).values
 
             all_predictions.extend(pred_label.cpu().tolist())
             all_labels.extend(labels.cpu().tolist())
+            all_image_names.extend(image_names)
+            all_confidences.extend(pred_confidence.cpu().tolist())
 
             oa = torch.mean((pred_label == labels).float())
             oa_total += oa.item()
@@ -264,7 +269,9 @@ def validate(cfg, dataLoader, model, writer, epoch=0):
     # save all predictions and labels to a json file for further analysis
     results = {
         'predictions': all_predictions,
-        'labels': all_labels
+        'labels': all_labels,
+        'image_names': all_image_names,
+        'confidences': all_confidences
     }
 
     # get the writers log directory
