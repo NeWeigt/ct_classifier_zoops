@@ -27,6 +27,7 @@ class CTDataset(Dataset):
             labels.
         '''
         self.data_root = cfg['data_root']
+        self.annoPath = cfg['annotation_file']
         self.split = split
         # Transforms. Here's where we could add data augmentation 
         #  For now, we just resize the images to the same dimensions...and convert them to torch.Tensor.
@@ -40,18 +41,22 @@ class CTDataset(Dataset):
         self.data = []
 
         # load annotation file
-        annoPath = os.path.join(
-            self.data_root,
-            'eccv_18_annotation_files',
-            'train_annotations.json' if self.split=='train' else 'cis_val_annotations.json'
-        )
+        # annoPath = os.path.join(
+        #     self.data_root,
+        #     'eccv_18_annotation_files',
+        #     'train_annotations.json' if self.split=='train' else 'cis_val_annotations.json'
+        # )        
+        print(f"Loading annotations from {self.annoPath}..."
+              )
+        print(f"{os.path.exists(self.annoPath)=}")
+        annoPath = self.annoPath
         meta = json.load(open(annoPath, 'r'))
 
         # enable filename lookup. Creates image IDs and assigns each ID one filename. 
         #  If your original images have multiple detections per image, this code assumes
         #  that you've saved each detection as one image that is cropped to the size of the
         #  detection, e.g., via megadetector.
-        images = dict([[i['id'], i['file_name']] for i in meta['images']])
+        images = dict([[i['id'], i['image_name']] for i in meta['images']])
         # create custom indices for each category that start at zero. Note: if you have already
         #  had indices for each category, they might not match the new indices.
         labels = dict([[c['id'], idx] for idx, c in enumerate(meta['categories'])])
@@ -86,7 +91,7 @@ class CTDataset(Dataset):
         image_name, label = self.data[idx]              # see line 57 above where we added these two items to the self.data list
 
         # load image
-        image_path = os.path.join(self.data_root, 'eccv_18_all_images_sm', image_name)
+        image_path = os.path.join(self.data_root, image_name)
         img = Image.open(image_path).convert('RGB')     # the ".convert" makes sure we always get three bands in Red, Green, Blue order
 
         # transform: see lines 31ff above where we define our transformations

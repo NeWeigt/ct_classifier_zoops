@@ -33,7 +33,7 @@ def create_dataloader(cfg, split='train'):
     dataLoader = DataLoader(
             dataset=dataset_instance,
             batch_size=cfg['batch_size'],
-            shuffle=True,
+            shuffle=split=='train',
             num_workers=cfg['num_workers']
         )
     return dataLoader
@@ -47,19 +47,18 @@ def load_model(cfg):
     model_instance = CustomResNet18(cfg['num_classes'])         # create an object instance of our CustomResNet18 class
 
     # load latest model state
-    model_states = glob.glob('model_states/*.pt')
-    if len(model_states):
-        # at least one save state found; get latest
-        model_epochs = [int(m.replace('model_states/','').replace('.pt','')) for m in model_states]
-        start_epoch = max(model_epochs)
-
-        # load state dict and apply weights to model
-        print(f'Resuming from epoch {start_epoch}')
-        state = torch.load(open(f'model_states/{start_epoch}.pt', 'rb'), map_location='cpu')
-        model_instance.load_state_dict(state['model'])
-
+    model_chkpt_path = cfg['model_checkpoint_path']
+    if model_chkpt_path is None or model_chkpt_path == '':
+        print('Starting new model (no checkpoint path specified)')
+        start_epoch = 0
+    elif os.path.exists(model_chkpt_path):
+        print(f'Loading model state from {model_chkpt_path}...')
+        checkpoint = torch.load(open(model_chkpt_path, 'rb'))
+        model_instance.load_state_dict(checkpoint['model'])
+        start_epoch = checkpoint.get('epoch', 0)
     else:
         # no save state found; start anew
+        print(f'WARNING NELE: No model state found at {model_chkpt_path}.')
         print('Starting new model')
         start_epoch = 0
 
