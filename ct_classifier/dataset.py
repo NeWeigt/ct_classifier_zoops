@@ -51,29 +51,54 @@ class CTDataset(Dataset):
         print(f"{os.path.exists(self.annoPath)=}")
         annoPath = self.annoPath
         meta = json.load(open(annoPath, 'r'))
+        meta_split = meta[split]
+        images = meta_split['images']
+        annotations = meta_split['annotations']
 
         # enable filename lookup. Creates image IDs and assigns each ID one filename. 
         #  If your original images have multiple detections per image, this code assumes
         #  that you've saved each detection as one image that is cropped to the size of the
         #  detection, e.g., via megadetector.
-        images = dict([[i['id'], i['image_name']] for i in meta['images']])
-        # create custom indices for each category that start at zero. Note: if you have already
-        #  had indices for each category, they might not match the new indices.
-        labels = dict([[c['id'], idx] for idx, c in enumerate(meta['categories'])])
+        # images = dict([[i['id'], i['image_name']] for i in meta['images']])
+        # # create custom indices for each category that start at zero. Note: if you have already
+        # #  had indices for each category, they might not match the new indices.
+        # labels = dict([[c['id'], idx] for idx, c in enumerate(meta['categories'])])
+
+        stat = list(set([im.split('/')[0] for im in images]))
+        stat.sort()
+        print(f"{stat=}")
+        print(f"{images[:5]=}")
+
+        print(f"{len(images)=}")
+        print(f"{annotations[:5]=}")
+        print(f"{len(annotations)=}")
+
+        # load label mapping from category ID to index starting at 0
+        labels_mapping_path = "/home/Nele/code/scripts/DataPrep_Classifier/category_dict.json"
+        with open(labels_mapping_path, 'r') as f:
+            label_mapping = json.load(f)
+
+        labels = [label_mapping[anno] for anno in annotations]
+
+        print(f"{annotations[:5]=}")
+        print(f"{labels[:5]=}")
+
+        self.data = list(zip(images, labels))
+    
         
         # since we're doing classification, we're just taking the first annotation per image and drop the rest
-        images_covered = set()      # all those images for which we have already assigned a label
-        for anno in meta['annotations']:
-            imgID = anno['image_id']
-            if imgID in images_covered:
-                continue
+        # images_covered = set()      # all those images for which we have already assigned a label
+        # for anno in meta['annotations']:
+        #     imgID = anno['image_id']
+        #     if imgID in images_covered:
+        #         continue
             
-            # append image-label tuple to data
-            imgFileName = images[imgID]
-            label = anno['category_id']
-            labelIndex = labels[label]
-            self.data.append([imgFileName, labelIndex])
-            images_covered.add(imgID)       # make sure image is only added once to dataset
+        #     # append image-label tuple to data
+        #     imgFileName = images[imgID]
+        #     label = anno['category_id']
+        #     labelIndex = labels[label]
+        #     self.data.append([imgFileName, labelIndex])
+        #     images_covered.add(imgID)       # make sure image is only added once to dataset
     
 
     def __len__(self):

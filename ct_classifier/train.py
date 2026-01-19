@@ -271,7 +271,8 @@ def validate(cfg, dataLoader, model, writer, epoch=0):
     log_dir = writer.log_dir
     val_dir = os.path.join(log_dir, 'val_predictions')
     os.makedirs(val_dir, exist_ok=True)
-    with open(f'{val_dir}/val_predictions_epoch_{epoch}.json', 'w') as f:
+    # zero pad epoch number to have files in correct order when sorted by name
+    with open(f'{val_dir}/val_predictions_epoch_{epoch:05d}.json', 'w') as f:
         json.dump(results, f)
 
 

@@ -8,9 +8,9 @@ device: cuda            # if you have multiple GPU's, you can use 'cude:4' to sp
 num_workers: 4          # number of CPU cores that load data in parallel. You can set this to the number of logical CPU cores that you have. 
 
 # dataset parameters
-data_root: /mnt/class_data/Nele/ct_train_data/ROIs_August2021
+data_root: /mnt/class_data/Nele/ct_train_data/
 image_root: /mnt/class_data/Nele/ct_train_data/
-annotation_file: /home/Nele/code/scripts/DataPrep_Classifier/single_images.json
+annotation_file: /mnt/class_data/Nele/training.json
 model_checkpoint_path: ""
 
 num_classes: 28          
