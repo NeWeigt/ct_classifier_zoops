@@ -5,6 +5,8 @@
     2022 Benjamin Kellenberger
 '''
 
+from csv import writer
+from csv import writer
 import os
 import argparse
 import yaml
@@ -16,6 +18,7 @@ import torch.nn as nn # this contains our loss function
 from torch.utils.data import DataLoader # the pytorch dataloader class will take care of all kind of parallelization during training
 from torch.optim import SGD # this imports the optimizer
 import torchvision # this contains some helper functions for vision-related tasks
+import matplotlib.pyplot as plt
 
 # let's import our own classes and functions!
 from util import init_seed
@@ -97,175 +100,79 @@ def setup_optimizer(cfg, model):
                     weight_decay=cfg['weight_decay'])
     return optimizer
 
-
-
-def train(cfg, dataLoader, model, optimizer, writer, epoch=0):
+  
+       
+def train_val_test(cfg, dataLoader, model,  writer, optimizer=None, split='train', epoch=None):
     '''
-        Our actual training function.
+     Our actual training function.
     '''
-
     device = cfg['device']
-
     # put model on device
     model.to(device)
-    
-    # put the model into training mode
-    # this is required for some layers that behave differently during training
-    # and validation (examples: Batch Normalization, Dropout, etc.)
-    model.train()
-
+    if split=='train':
+        # put the model into training mode
+        # this is required for some layers that behave differently during training
+        # and validation (examples: Batch Normalization, Dropout, etc.)
+        model.train()
+    else:
+        model.eval()
     # loss function
     #  note: if you're doing multi target classification, use nn.BCEWithLogitsLoss() and convert labels to float
     criterion = nn.CrossEntropyLoss()
-
     # running averages
-    loss_total, oa_total = 0.0, 0.0                         # for now, we just log the loss and overall accuracy (OA)
-
-    # iterate over dataLoader
-    progressBar = trange(len(dataLoader))
-    for idx, (data, labels, image_names) in enumerate(dataLoader):       # see the last line of file "dataset.py" where we return the image tensor (data) and label
-
-        # put data and labels on device
-        data, labels = data.to(device), labels.to(device)
-
-        # forward pass
-        prediction = model(data)
-
-        # reset gradients to zero
-        optimizer.zero_grad()
-
-        # loss
-        loss = criterion(prediction, labels)
-
-        # backward pass (calculate gradients of current batch)
-        loss.backward()
-
-        # apply gradients to model parameters
-        optimizer.step()
-
-        # log statistics
-        loss_total += loss.item()                       # the .item() command retrieves the value of a single-valued tensor, regardless of its data type and device of tensor
-
-        pred_label = torch.argmax(prediction, dim=1)    # the predicted label is the one at position (class index) with highest predicted value
-        oa = torch.mean((pred_label == labels).float()) # OA: number of correct predictions divided by batch size (i.e., average/mean)
-        oa_total += oa.item()
-
-        if idx == 0:
-            print('logging info and images to tensorboard')
-            batch_size = data.size(0)
-            num_to_sample = min(32, batch_size)  # make sure we don't exceed batch size
-            # randomly choose indices
-            # indices = torch.randperm(batch_size)[:num_to_sample]
-            # select random images
-            imgs = data[:num_to_sample]
-            # make grid
-            img_grid = torchvision.utils.make_grid(imgs)
-            # show images
-            # matplotlib_imshow(img_grid, one_channel=True)
-            writer.add_image('train_images', img_grid, epoch)
-
-        progressBar.set_description(
-            '[Train] Loss: {:.2f}; OA: {:.2f}%'.format(
-                loss_total/(idx+1),
-                100*oa_total/(idx+1)
-            )
-        )
-        progressBar.update(1)
-    
-    # end of epoch; finalize
-    progressBar.close()
-    loss_total /= len(dataLoader)           # shorthand notation for: loss_total = loss_total / len(dataLoader)
-    oa_total /= len(dataLoader)
-
-    writer.add_scalar('train/loss', loss_total, epoch)
-    writer.add_scalar('train/oa', oa_total, epoch)
-
-    return loss_total, oa_total
-
-
-
-def validate(cfg, dataLoader, model, writer, epoch=0):
-    '''
-        Validation function. Note that this looks almost the same as the training
-        function, except that we don't use any optimizer or gradient steps.
-    '''
-    
-    device = cfg['device']
-    model.to(device)
-
-    # put the model into evaluation mode
-    # see lines 103-106 above
-    model.eval()
-    
-    criterion = nn.CrossEntropyLoss()   # we still need a criterion to calculate the validation loss
-
-    # running averages
-    loss_total, oa_total = 0.0, 0.0     # for now, we just log the loss and overall accuracy (OA)
-
-    # iterate over dataLoader
-    progressBar = trange(len(dataLoader))
-
+    losses=[]
+    accuracies=[]
+    #all_gt_labels=[]
+    #all_pred_labels=[]
     all_predictions = []
     all_labels = []
     all_image_names = []
     all_confidences = []
-    
-    with torch.no_grad():               # don't calculate intermediate gradient steps: we don't need them, so this saves memory and is faster
-        for idx, (data, labels, image_names) in enumerate(dataLoader):
-
-            # put data and labels on device
-            data, labels = data.to(device), labels.to(device)
-
-            # forward pass
-            prediction = model(data)
-
-            # loss
-            loss = criterion(prediction, labels)
-
+    # iterate over dataLoader
+    progressBar = trange(len(dataLoader))
+    for idx, (data, labels, image_names) in enumerate(dataLoader):
+       # see the last line of file "dataset.py" where we return the image tensor (data) and label
+       # put data and labels on device
+        data, labels = data.to(device), labels.to(device)
+        
+        # forward pass
+        prediction = model(data)
+        if split == "train":
+            # reset gradients to zero
+            optimizer.zero_grad()
+        # loss
+        loss = criterion(prediction, labels)
+        if split == 'train':
+            # backward pass (calculate gradients of current batch)
+            loss.backward()
+            # apply gradients to model parameters
+            optimizer.step()
             # log statistics
-            loss_total += loss.item()
-
-            pred_label = torch.argmax(prediction, dim=1)
-            pred_confidence = torch.max(torch.softmax(prediction, dim=1), dim=1).values
-
-            all_predictions.extend(pred_label.cpu().tolist())
-            all_labels.extend(labels.cpu().tolist())
-            all_image_names.extend(image_names)
-            all_confidences.extend(pred_confidence.cpu().tolist())
-
-            oa = torch.mean((pred_label == labels).float())
-            oa_total += oa.item()
-
-            if idx == 0:
-                print('logging info and images to tensorboard')
-                batch_size = data.size(0)
-                num_to_sample = min(32, batch_size)  # make sure we don't exceed batch size
-                # randomly choose indices
-                # indices = torch.randperm(batch_size)[:num_to_sample]
-                # select random images
-                imgs = data[:num_to_sample]
-                # make grid
-                img_grid = torchvision.utils.make_grid(imgs)
-                # show images
-                # matplotlib_imshow(img_grid, one_channel=True)
-                writer.add_image('val_images', img_grid, epoch)
-
-            progressBar.set_description(
-                '[Val ] Loss: {:.2f}; OA: {:.2f}%'.format(
-                    loss_total/(idx+1),
-                    100*oa_total/(idx+1)
-                )
+            # loss_total += loss.item()   
+        losses.append(loss.item())                      # the .item() command retrieves the value of a single-valued tensor, regardless of its data type and device of tensor
+        pred_label = torch.argmax(prediction, dim=1)    # the predicted label is the one at position (class index) with highest predicted value
+        pred_confidence = torch.max(torch.softmax(prediction, dim=1), dim=1).values
+        oa = torch.mean((pred_label == labels).float()) # OA: number of correct predictions divided by batch size (i.e., average/mean)
+        # oa_total += oa.item()
+        accuracies.append(oa.item())
+        #all_gt_labels.append(gt_labels.cpu())
+        #all_pred_labels.append(pred_label.cpu())
+        all_predictions.extend(pred_label.cpu().tolist())
+        all_labels.extend(labels.cpu().tolist())
+        all_image_names.extend(image_names)
+        all_confidences.extend(pred_confidence.cpu().tolist())
+        progressBar.set_description(
+            '[{}] Loss: {:.2f}; OA: {:.2f}%'.format(
+                split.capitalize(),
+                (loss.item()),
+                100*(oa.item())
             )
-            progressBar.update(1)
-    
+        )
+        progressBar.update(1)
     # end of epoch; finalize
     progressBar.close()
-    loss_total /= len(dataLoader)
-    oa_total /= len(dataLoader)
-
-    writer.add_scalar('val/loss', loss_total, epoch)
-    writer.add_scalar('val/oa', oa_total, epoch)
-
+    loss_total = sum(losses)/len(losses)           # shorthand notation for: loss_total = loss_total / len(dataLoader)
+    oa_total = sum(accuracies)/len(accuracies)
     # save all predictions and labels to a json file for further analysis
     results = {
         'predictions': all_predictions,
@@ -273,63 +180,56 @@ def validate(cfg, dataLoader, model, writer, epoch=0):
         'image_names': all_image_names,
         'confidences': all_confidences
     }
-
-    # get the writers log directory
+    
     log_dir = writer.log_dir
     val_dir = os.path.join(log_dir, 'val_predictions')
     os.makedirs(val_dir, exist_ok=True)
     # zero pad epoch number to have files in correct order when sorted by name
     with open(f'{val_dir}/val_predictions_epoch_{epoch:05d}.json', 'w') as f:
         json.dump(results, f)
-
-
     return loss_total, oa_total
 
-
-
 def main():
-
-    # Argument parser for command-line arguments:
-    # python ct_classifier/train.py --config configs/exp_resnet18.yaml
+    import argparse, yaml, os
+    from datetime import datetime
+    from torch.utils.tensorboard import SummaryWriter
+    # Argument parser
     parser = argparse.ArgumentParser(description='Train deep learning model.')
-    parser.add_argument('--config', help='Path to config file', default='configs/exp_resnet18.yaml')
+    parser.add_argument('--config', help='Path to config file', default='configs/model_try.yaml')
     args = parser.parse_args()
-
-    # load config
+    # Load config
     print(f'Using config "{args.config}"')
     cfg = yaml.safe_load(open(args.config, 'r'))
-
-    # init random number generator seed (set at the start)
+    # Initialize random seed
     init_seed(cfg.get('seed', None))
-
-    # check if GPU is available
+   
+    # TensorBoard writer
+    writer = SummaryWriter()
+    # Check GPU availability
     device = cfg['device']
     if device != 'cpu' and not torch.cuda.is_available():
         print(f'WARNING: device set to "{device}" but CUDA not available; falling back to CPU...')
         cfg['device'] = 'cpu'
-
-    # initialize data loaders for training and validation set
+    # Initialize dataloaders
     dl_train = create_dataloader(cfg, split='train')
     dl_val = create_dataloader(cfg, split='val')
-
-    # initialize model
+    
+    # Initialize model
     model, current_epoch = load_model(cfg)
-
-    # set up model optimizer
+    # Setup optimizer
     optim = setup_optimizer(cfg, model)
-
-    writer = SummaryWriter()
-
-    # we have everything now: data loaders, model, optimizer; let's do the epochs!
+    # Training loop
     numEpochs = cfg['num_epochs']
-    while current_epoch < numEpochs:
+    for current_epoch in range(current_epoch, numEpochs):
         current_epoch += 1
         print(f'Epoch {current_epoch}/{numEpochs}')
-
-        loss_train, oa_train = train(cfg, dl_train, model, optim, writer, current_epoch)
-        loss_val, oa_val = validate(cfg, dl_val, model, writer, current_epoch)
-
-        # combine stats and save
+        loss_train, oa_train = train_val_test(cfg, dl_train, model, writer, optim, split="train", epoch=current_epoch)
+        loss_val, oa_val = train_val_test(cfg, dl_val, model, writer, split="val", epoch=current_epoch)
+        writer.add_scalar('Loss/train', loss_train, current_epoch)
+        writer.add_scalar('Loss/val', loss_val, current_epoch)
+        writer.add_scalar('Accuracy/train', oa_train, current_epoch)
+        writer.add_scalar('Accuracy/val', oa_val, current_epoch)
+        # Combine stats and save
         stats = {
             'loss_train': loss_train,
             'loss_val': loss_val,
@@ -337,13 +237,8 @@ def main():
             'oa_val': oa_val
         }
         save_model(cfg, current_epoch, model, stats)
-    
-
-    # That's all, folks!
-        
-
-
 if __name__ == '__main__':
     # This block only gets executed if you call the "train.py" script directly
     # (i.e., "python ct_classifier/train.py").
+    print('Starting training script...')
     main()
