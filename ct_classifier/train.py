@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 from util import init_seed
 from dataset import CTDataset
 from model import CustomResNet18
+from bigmodel import CustomResNet50
 from torch.utils.tensorboard import SummaryWriter
 import json
 
@@ -50,7 +51,7 @@ def load_model(cfg):
     '''
         Creates a model instance and loads the latest model state weights.
     '''
-    model_instance = CustomResNet18(cfg['num_classes'])         # create an object instance of our CustomResNet18 class
+    model_instance = CustomResNet50(cfg['num_classes'])         # create an object instance of our CustomResNet50 class
 
     # load latest model state
     model_chkpt_path = cfg['model_checkpoint_path']
@@ -117,7 +118,7 @@ def train_val_test(cfg, dataLoader, model,  writer, optimizer=None, split='train
     else:
         model.eval()
     # loss function
-    #  note: if you're doing multi target classification, use nn.BCEWithLogitsLoss() and convert labels to float
+    # note: if you're doing multi target classification, use nn.BCEWithLogitsLoss() and convert labels to float
     criterion = nn.CrossEntropyLoss()
     # running averages
     losses=[]
