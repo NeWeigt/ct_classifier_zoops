@@ -16,8 +16,12 @@ or directly:
 
     python ct_classifier/save_best_epoch.py --input-dir path/to/checkpoints
 """
+## resnet18 model run 1
 ## Best checkpoint: '/home/Nele/code/ct_classifier_zoops/model_states/159.pt' with oa_val=0.8395
 # Saved as '/home/Nele/code/ct_classifier_zoops/best_epochs/first_training_resnet18.pt'.
+
+## Best checkpoint: '/home/Nele/code/ct_classifier_zoops/model_states/124.pt' with oa_val=0.8602
+# Saved as '/home/Nele/code/ct_classifier_zoops/best_epochs/first_training_resnet50.pt'.
 
 import argparse
 import os
@@ -69,7 +73,7 @@ def find_best_checkpoint(directory = '/home/Nele/code/ct_classifier_zoops/model_
 def save_best_checkpoint(
     input_dir = '/home/Nele/code/ct_classifier_zoops/model_states',
     output_dir = '/home/Nele/code/ct_classifier_zoops/best_epochs',
-    output_name: str = "first_training_resnet18.pt",
+    output_name: str = "first_training_resnet50.pt",
 ) -> None:
     """Find the best checkpoint and save/copy it to the desired location.
 
