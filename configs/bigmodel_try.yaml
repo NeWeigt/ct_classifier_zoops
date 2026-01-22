@@ -10,7 +10,7 @@ num_workers: 4          # number of CPU cores that load data in parallel. You ca
 # dataset parameters
 data_root: /mnt/class_data/Nele/ct_train_data/
 image_root: /mnt/class_data/Nele/ct_train_data/
-annotation_file: /mnt/class_data/Nele/training.json
+annotation_file: /mnt/class_data/Nele/allstations_training.json
 model_checkpoint_path: ""
 
 num_classes: 28          
