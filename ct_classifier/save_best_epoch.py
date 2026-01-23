@@ -23,6 +23,9 @@ or directly:
 ## Best checkpoint: '/home/Nele/code/ct_classifier_zoops/model_states/124.pt' with oa_val=0.8602
 # Saved as '/home/Nele/code/ct_classifier_zoops/best_epochs/first_training_resnet50.pt'.
 
+# Best checkpoint: 'model_states/147.pt' with oa_val=0.8744
+# Saved as 'model_states/morestations_resnet50.pt'.
+
 import argparse
 import os
 import glob
