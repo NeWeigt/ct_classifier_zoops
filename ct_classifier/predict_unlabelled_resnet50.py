@@ -8,8 +8,8 @@ it to all images in a directory.
 Usage (from project root ``ct_classifier_zoops``):
 
     python ct_classifier/predict_unlabelled_resnet50.py \
-        --image-dir /mnt/class_data/Nele/ROIs_August2024/Station01 \
-        --output-csv /mnt/class_data/Nele/ROIs_August2024/predictions_resnet50_St01.csv
+        --image-dir /mnt/class_data/Nele/ROIs_August2021/Station2_classified \
+        --output-csv /mnt/class_data/Nele/ROIs_August2021/predictions_resnet50_St02.csv
 
 """
 
