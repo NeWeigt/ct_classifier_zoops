@@ -1,8 +1,9 @@
 '''
     Model implementation.
     We'll be using a "simple" ResNet-18 for image classification here.
-
     2022 Benjamin Kellenberger
+
+    adapted 2026 for ResNet-50 by Nele Weigt
 '''
 
 import torch.nn as nn
