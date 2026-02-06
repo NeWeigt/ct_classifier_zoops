@@ -196,7 +196,7 @@ def main():
     from torch.utils.tensorboard import SummaryWriter
     # Argument parser
     parser = argparse.ArgumentParser(description='Train deep learning model.')
-    parser.add_argument('--config', help='Path to config file', default='configs/model_try.yaml')
+    parser.add_argument('--config', help='Path to config file', default='configs/bigmodel_try.yaml')
     args = parser.parse_args()
     # Load config
     print(f'Using config "{args.config}"')
