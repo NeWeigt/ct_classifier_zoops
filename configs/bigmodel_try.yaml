@@ -13,7 +13,7 @@ image_root: /mnt/class_data/Nele/ct_train_data/
 annotation_file: /mnt/class_data/Nele/training_2.json
 model_checkpoint_path: ""
 
-num_classes: 28          
+num_classes: 29          
 
 # training hyperparameters
 image_size: [224, 224]
