@@ -10,7 +10,10 @@ Usage (from project root ``ct_classifier_zoops``):
     python ct_classifier/predict_unlabelled_resnet50.py \
         --image-dir /mnt/class_data/Nele/ROIs_August2025/Station01 \
         --output-csv /mnt/class_data/Nele/ROIs_August2025/predictions_resnet50_St01.csv
-
+ 
+    python ct_classifier/predict_unlabelled_resnet50.py \
+        --image-dir /mnt/class_data/Nele/ROIs_August2025/Station01 \
+        --output-csv /mnt/class_data/Nele/ROIs_August2025/optturb_predictions_resnet50_St01.csv
 """
 
 # Standard library imports for argument parsing, file handling and typing.
@@ -45,8 +48,10 @@ def get_repo_root() -> str:
 
 def load_model(
     device: torch.device,
-    num_classes: int = 28,
-    checkpoint_name: str = "first_training_resnet50.pt",
+#   num_classes: int = 28,                                  # model trained without optical turbulence
+    num_classes: int = 29,                                  # model trained including optical turbulence            
+#   checkpoint_name: str = "first_training_resnet50.pt",    # model trained without optical turbulence
+    checkpoint_name: str = "optturb_resnet50.pt",           # model trained including optical turbulence
 ) -> CustomResNet50:
     """Load CustomResNet50 with weights from the best-epoch checkpoint.
 
@@ -61,7 +66,7 @@ def load_model(
     if not os.path.exists(checkpoint_path):
         raise FileNotFoundError(
             f"Checkpoint not found at '{checkpoint_path}'. "
-            "Make sure best_epochs/first_training_resnet50.pt exists."
+            f"Make sure best_epochs/{checkpoint_name} exists."
         )
 
     # Initialize the ResNet-50 model with the correct number of classes.

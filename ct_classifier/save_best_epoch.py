@@ -26,8 +26,12 @@ or directly:
 # Best checkpoint: 'model_states/147.pt' with oa_val=0.8744
 # Saved as 'model_states/morestations_resnet50.pt'.
 
-# model resnet50 including optturb
+# model resnet50 including optturb version 1 test
 # Best checkpoint: '/home/Nele/code/ct_classifier_zoops/model_states/49.pt' with oa_val=0.8545
+# Saved as '/home/Nele/code/ct_classifier_zoops/model_states/best.pt'.
+
+# model resnet50 including optturb version 2
+# Best checkpoint: '/home/Nele/code/ct_classifier_zoops/model_states/145.pt' with oa_val=0.8663
 # Saved as '/home/Nele/code/ct_classifier_zoops/model_states/best.pt'.
 
 import argparse
