@@ -29,6 +29,7 @@ import torch
 import torch.nn.functional as F
 from PIL import Image
 from torchvision.transforms import Compose, Resize, ToTensor
+from tqdm import tqdm
 
 # Import the custom ResNet-50 architecture used during training.
 from bigmodel import CustomResNet50
@@ -191,7 +192,7 @@ def predict_on_folder(
 
         # Disable gradient computation to speed up inference and save memory.
         with torch.no_grad():
-            for img_path in image_paths:
+            for img_path in tqdm(image_paths, desc="Classifying images", unit="img"):
                 try:
                     # Open the image file and convert to RGB.
                     img = Image.open(img_path).convert("RGB")
